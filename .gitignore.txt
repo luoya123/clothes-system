@@ -1,0 +1,12 @@
+# 屏蔽图片文件夹
+clothes_img/
+
+# 屏蔽所有JSON数据文件
+*.json
+
+# 屏蔽Python缓存文件
+__pycache__/
+*.pyc
+
+# 屏蔽环境变量文件
+.env
