@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-from streamlit_javascript import st_javascript
 import base64
 
 # ==============================================
@@ -9,19 +8,19 @@ import base64
 AMAP_WEB_KEY = st.secrets.get("AMAP_WEB_KEY", "")
 
 # ==============================================
-# 🖼️ 图片本地永久存储（手机/电脑都能永久保存）
+# 🖼️ 图片缓存（只存在你当前浏览器里，别人看不到）
 # ==============================================
-def save_image_to_local_storage(img_key, img_data):
-    base64_data = base64.b64encode(img_data).decode()
-    js_code = f"localStorage.setItem('{img_key}', '{base64_data}');"
-    st_javascript(js_code)
-
-def load_image_from_local_storage(img_key):
-    js_code = f"localStorage.getItem('{img_key}');"
-    result = st_javascript(js_code)
-    if result and isinstance(result, str):
-        return base64.b64decode(result)
+@st.cache_data(show_spinner=False)
+def get_cached_image():
     return None
+
+def save_image_to_cache(img_bytes):
+    get_cached_image.clear()
+    get_cached_image()
+    st.session_state["clothes_image"] = img_bytes
+
+def load_image_from_cache():
+    return st.session_state.get("clothes_image", None)
 
 # ==============================================
 # 🌤️ 获取天气
@@ -64,7 +63,7 @@ def get_clothes_suggest(temp):
 # 🏠 主界面
 # ==============================================
 st.set_page_config(page_title="智能穿搭助手", page_icon="👕", layout="wide")
-st.title("👕 智能穿搭助手 · 永久存图版")
+st.title("👕 智能穿搭助手 · 专属版")
 
 # 显示天气
 weather_info = get_weather("北京")
@@ -76,24 +75,23 @@ if "气温" in weather_info:
     st.success(f"👔 穿搭建议：{get_clothes_suggest(temp)}")
 
 # ==============================================
-# 🖼️ 衣柜图片上传（永久保存在你自己手机里！）
+# 🖼️ 衣柜图片上传（只存在你自己的浏览器里）
 # ==============================================
-st.subheader("🗄️ 我的衣柜 - 图片永久保存")
-IMAGE_KEY = "my_clothes_image"
+st.subheader("🗄️ 我的衣柜")
 
 # 读取已保存的图片
-saved_img = load_image_from_local_storage(IMAGE_KEY)
+saved_img = load_image_from_cache()
 
 # 上传
 uploaded_file = st.file_uploader("上传衣服照片", type=["jpg", "png", "jpeg"])
 
 if uploaded_file is not None:
     img_bytes = uploaded_file.read()
-    save_image_to_local_storage(IMAGE_KEY, img_bytes)
-    st.success("✅ 图片已永久保存到你的设备！")
+    save_image_to_cache(img_bytes)
+    st.success("✅ 图片已保存到你的浏览器！")
     st.image(img_bytes, caption="你的穿搭", use_column_width=True)
 elif saved_img is not None:
-    st.image(saved_img, caption="✅ 已从本地加载（永久保存）", use_column_width=True)
+    st.image(saved_img, caption="✅ 已从本地会话加载", use_column_width=True)
 else:
     st.info("请上传你的衣服照片～")
 
@@ -101,4 +99,4 @@ else:
 # 📝 备注
 # ==============================================
 st.markdown("---")
-st.caption("✅ 图片只存在你的手机/电脑里，别人看不到 | ✅ 刷新/关闭再打开都不会丢")
+st.caption("✅ 图片只存在你当前的浏览器会话里，别人看不到 | ✅ 同一个浏览器刷新后仍可保留")
